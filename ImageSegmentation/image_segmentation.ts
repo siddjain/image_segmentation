@@ -1,8 +1,18 @@
 ﻿class Segment
 {
-    public sum: number[];
-    public mean: number[];
-    public pixels: number;
+    public sum: number[] = [];
+    public mean: number[] = [];
+    public pixels: number = 0;
+    
+    constructor(channels: number)
+    {
+        this.sum = new Array(channels);
+        this.mean = new Array(channels);
+        for (var i = 0; i < channels; i++)
+        {
+            this.sum[i] = this.mean[i] = 0;
+        }
+    }    
 }
 
 class App
@@ -15,8 +25,7 @@ class App
     private _bmpData1: number[];
     private _bmpData2: number[];
     private _qx: number[];
-    private _qy: number[];
-    private _index: number;
+    private _qy: number[];    
     private _segment: Segment;
     private _segmentId: number;
     private _tolerance: number;
@@ -59,69 +68,83 @@ class App
         var width = canvas.width;
         var height = canvas.height;
         var n = width * height;
+        this._rows = height;
+        this._cols = width;
         this._remainder = n;
         var ctx = canvas.getContext("2d");
         this._bmpData1 = ctx.getImageData(0, 0, width, height).data;
+        canvas2.width = width;
+        canvas2.height = height;
+        var ctx2 = canvas2.getContext("2d");
+        var imgData2 = ctx2.createImageData(width, height);
+        this._bmpData2 = imgData2.data;
         this._mask = new Array(height);
+        this._channels = 4;
         for (var i = 0; i < height; i++)
         {
             this._mask[i] = new Array(width);
+            for (var j = 0; j < width; j++)
+            {
+                this._mask[i][j] = -1;
+            }
         }
         var segments: Segment[] = new Array();
         this._segmentId = 0;
         while (this._remainder)
         {
-            this._segment = new Segment();
+            this._segment = new Segment(this._channels);
             segments.push(this._segment);
-            this._initialize();
-            while (this._index < this._qx.length)
+            this._initialize();            
+            for (i = 0; i < this._qx.length; i++)
             {
-                var x = this._qx[this._index];
-                var y = this._qy[this._index];
-                this._segmentPixel(x, y);
-                this._index++;
+                var x = this._qx[i];
+                var y = this._qy[i];
+                if (this._mask[y][x] !== -2)
+                {
+                    var debug = 1;
+                }
+                this._mask[y][x] = -1;
+                this._segmentPixel(x, y);                
             }
             for (i = 0; i < this._qx.length; i++)
             {
                 x = this._qx[i];
                 y = this._qy[i];
                 var k = (y * this._cols + x) * 4;
-                for (var j = 0; j < this._channels; j++)
+                for (j = 0; j < this._channels; j++)
                 {
                     this._bmpData2[k++] = this._segment.mean[j];
                 }
             }
             this._segmentId++;
-        }
-        canvas2.width = width;
-        canvas2.height = height;
-        var ctx2 = canvas2.getContext("2d");
-        var imgData2 = ctx2.createImageData(width, height);
-        this._bmpData2 = imgData2.data;
+        }       
         ctx2.putImageData(imgData2, 0, 0);
     }
 
     private _initialize(): void
     {
-        var i = Math.round(Math.random() * this._remainder);
+        var i = Math.floor(Math.random() * this._remainder);
         var x = -1;
         var y = -1;
         var j = 0;
         for (var row = 0; row < this._rows; row++)
         {
-            for (var col = 0; col < this._cols; col++, j++)
+            for (var col = 0; col < this._cols; col++)
             {
-                if (this._mask[row][col] > 0 && j === i)
+                if (this._mask[row][col] === -1)
                 {
-                    x = col;
-                    y = row;
-                    break;
-                }                
+                    if (j === i)
+                    {
+                        this._qx = [col];
+                        this._qy = [row];
+                        this._mask[row][col] = -2; // to mark that it is in the queue
+                        return;
+                    }
+                    j++;
+                }
             }
         }
-        this._qx = [x];
-        this._qy = [y];
-        this._index = 0;
+        throw "invalid operation exception";
     }
 
     private static getRandomInt(start: number, end: number): number {
@@ -146,6 +169,10 @@ class App
         {
             this._mask[y][x] = this._segmentId;
             this._remainder--;
+            if (this._remainder === 0)
+            {
+                var debug = 1;
+            }
             segment.pixels++;
             for (i = 0; i < this._channels; i++)
             {
@@ -158,7 +185,7 @@ class App
                 this._qx.push(neighbors.x[i]);
                 this._qy.push(neighbors.y[i]);
             }
-        }
+        }        
     }
 
     private _getColor(imageData: number[], x: number, y: number): number[]
@@ -180,8 +207,9 @@ class App
 
     private _test(x: number, y: number, u: number[], v: number[]): void
     {
-        if (x >= 0 && x < this._cols && y >= 0 && y < this._rows)
+        if (x >= 0 && x < this._cols && y >= 0 && y < this._rows && this._mask[y][x] === -1)
         {
+            this._mask[y][x] = -2; // to mark that it is in the queue
             u.push(x);
             v.push(y);
         }
