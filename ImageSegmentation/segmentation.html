@@ -1,0 +1,21 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Image Segmentation</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.3.0/knockout-min.js"></script>
+    <script src="image_segmentation.js"></script>
+</head>
+<body>
+    <h1>Randomize Image</h1>
+    <label>Image File:</label>
+    <input type="file" id="imageLoader" name="imageLoader" data-bind="event: {change: uploadImage}" />
+    <label>Tolerance:</label>
+    <input type="range" min="0" max="100" value="0" data-bind="value: tolerance, valueUpdate: 'input'" />
+    <span data-bind="text: tolerance"></span>
+    <button style="margin-left:2em;" data-bind="click: segment">Segment</button><br /><br />
+    <canvas id="canvas1"></canvas>
+    <canvas id="canvas2"></canvas>
+    <div>Brought to you by <a href="https://twitter.com/fd97207" target="_blank">@fd97207</a></div>    
+</body>
+</html>
